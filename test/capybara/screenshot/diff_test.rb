@@ -27,7 +27,8 @@ module Capybara
       include Diff::TestMethodsStub
 
       teardown do
-        FileUtils.rm_rf Capybara::Screenshot.screenshot_area_abs
+        # TODO: need to find a way to clean up the snapshots
+        # CapybaraScreenshotDiff::SnapManager.clean!
 
         Capybara::Screenshot.add_driver_path = @orig_add_driver_path
         Capybara::Screenshot.add_os_path = @orig_add_os_path
@@ -148,7 +149,7 @@ module Capybara
           mock.expect(:error_message, "expected error message")
 
           @test_screenshots = []
-          @test_screenshots << ["my_test.rb:42", "sample_screenshot", mock]
+          @test_screenshots << [["my_test.rb:42"], "sample_screenshot", mock]
           mock.expect(:clear_screenshots, @test_screenshots)
         end
       end
@@ -176,7 +177,7 @@ module Capybara
           comparison.expect(:base_image_path, Pathname.new("screenshot.base.png"))
           comparison.expect(:error_message, "expected error message for non minitest")
 
-          @test_screenshots << ["my_test.rb:42", "sample_screenshot", comparison]
+          @test_screenshots << [["my_test.rb:42"], "sample_screenshot", comparison]
         end
       end
 
@@ -195,7 +196,9 @@ module Capybara
 
         test "use default screenshot format" do
           skip "VIPS not present. Skipping VIPS driver tests." unless defined?(Vips)
-          set_test_images("a.webp", :a, :a)
+          snap = CapybaraScreenshotDiff::SnapManager.snapshot("a", "webp")
+
+          set_test_images(snap, :a, :a)
 
           Capybara::Screenshot.stub(:screenshot_format, "webp") do
             screenshot "a", driver: :vips
@@ -205,7 +208,8 @@ module Capybara
         end
 
         test "override default screenshot format" do
-          set_test_images("a.png", :a, :a)
+          snap = CapybaraScreenshotDiff::SnapManager.snapshot("a", "png")
+          set_test_images(snap, :a, :a)
 
           Capybara::Screenshot.stub(:screenshot_format, "webp") do
             screenshot "a", screenshot_format: "png"
